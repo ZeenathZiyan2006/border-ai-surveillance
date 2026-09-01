@@ -1,7 +1,8 @@
 venv/
 __pycache__/
 *.pyc
-.env
-uploads/*.mp4test.mp4
-test.mp4
 uploads/
+*.mp4
+*.avi
+*.mov
+border_surveillance.db
