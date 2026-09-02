@@ -25,13 +25,14 @@ import {
 } from "lucide-react";
 import {
   Area,
-AreaChart,
-CartesianGrid,
-ResponsiveContainer,
-Tooltip,
-XAxis,
-YAxis,
-  
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  LineChart,
+  Line,
 } from "recharts";
 import "./App.css";
 const API_BASE_URL = "http://127.0.0.1:8001";
@@ -674,15 +675,35 @@ function CameraPage({ cameras }) {
     </div>
   );
 }
-
 function DetectionPage() {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [detectionResult, setDetectionResult] = useState(null);
-const [selectedImage, setSelectedImage] = useState(null);
-const [imageScanning, setImageScanning] = useState(false);
-const [imageAlertResult, setImageAlertResult] = useState(null);
-  
+
+  const handleVideoUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setSelectedVideo(file);
+    setUploading(true);
+    setDetectionResult(null);
+
+    try {
+      console.log("Selected video:", file.name);
+
+      // Temporary result.
+      // We will connect this to your backend AI API next.
+      setDetectionResult({
+        detection: {
+          detections: [],
+          total_detections: 0,
+          frames_analyzed: 0,
+        },
+      });
+    } catch (error) {
+      console.error("Video upload error:", error);
+
       setDetectionResult({
         error: "Unable to process video.",
       });
@@ -691,10 +712,7 @@ const [imageAlertResult, setImageAlertResult] = useState(null);
     }
   };
 
-  // ================================
   // REAL AI DETECTION DATA
-  // ================================
-+++++++++++++++++++++
   const rawDetections =
     detectionResult?.detection?.detections || [];
 
@@ -702,330 +720,260 @@ const [imageAlertResult, setImageAlertResult] = useState(null);
     detectionResult?.detection?.total_detections ||
     rawDetections.length;
 
-  // Count each detected object
   const objectStats = rawDetections.reduce(
     (acc, detection) => {
-      const object = detection.object || "unknown";
+      const objectName =
+        detection.class_name ||
+        detection.label ||
+        detection.object ||
+        "Unknown";
 
-      if (!acc[object]) {
-        acc[object] = {
-          count: 0,
-          maxConfidence: 0,
-        };
-      }
-
-      acc[object].count += 1;
-
-      acc[object].maxConfidence = Math.max(
-        acc[object].maxConfidence,
-        Number(detection.confidence || 0)
-      );
+      acc[objectName] =
+        (acc[objectName] || 0) + 1;
 
       return acc;
     },
     {}
   );
 
-  const objectStatsList = Object.entries(objectStats)
-    .sort((a, b) => b[1].count - a[1].count)
-    .map(([object, stats]) => ({
-      object,
-      count: stats.count,
-      maxConfidence: Math.round(
-        stats.maxConfidence * 100
-      ),
-    }));
+  const objectStatsList = Object.entries(
+    objectStats
+  ).map(([name, count]) => ({
+    name,
+    count,
+  }));
 
-  // Detection activity by frame
-  const detectionTimeline = rawDetections.reduce(
-    (acc, detection) => {
-      const frame = detection.frame || 0;
+  const detectionTimeline =
+    rawDetections.reduce(
+      (acc, detection) => {
+        const frame =
+          detection.frame ||
+          detection.frame_number ||
+          0;
 
-      if (!acc[frame]) {
-        acc[frame] = 0;
-      }
+        acc[frame] =
+          (acc[frame] || 0) + 1;
 
-      acc[frame] += 1;
+        return acc;
+      },
+      {}
+    );
 
-      return acc;
-    },
-    {}
-  );
-
-  const timelineData = Object.entries(detectionTimeline)
+  const timelineData = Object.entries(
+    detectionTimeline
+  )
     .map(([frame, count]) => ({
       frame: Number(frame),
-      count,
+      detections: count,
     }))
     .sort((a, b) => a.frame - b.frame);
 
-  const framesAnalyzed = rawDetections.length
-    ? Math.max(
-        ...rawDetections.map((d) => d.frame || 0)
-      )
-    : 0;
+  const framesAnalyzed =
+    detectionResult?.detection?.frames_analyzed || 0;
 
   return (
-    <div>
+    <div className="page-container">
 
       {/* PAGE HEADER */}
-
-      <section className="page-intro">
-        <span className="eyebrow">
-          AI COMPUTER VISION
-        </span>
-
-        <h3>Detection History</h3>
-
-        <p>
-          Analyze surveillance footage using the
-          AI vision engine.
-        </p>
-      </section>
-
+      <div className="page-header">
+        <div>
+          <h1>AI Detection</h1>
+          <p>
+            Upload video footage and analyze
+            detected objects using AI.
+          </p>
+        </div>
+      </div>
 
       {/* VIDEO UPLOAD */}
+      <div className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Video Detection</h2>
+            <p>
+              Upload a surveillance video for
+              AI-powered detection.
+            </p>
+          </div>
+        </div>
 
-      <div className="panel video-upload-panel">
-
-        <PanelHeader
-          title="AI VIDEO ANALYSIS"
-          subtitle="Upload surveillance footage for AI processing"
-          icon={<Video />}
-        />
-
-        <label className="video-upload-box">
-
-          <Video size={30} />
-
-          <strong>
-            {uploading
-              ? "ANALYZING VIDEO..."
-              : selectedVideo
-              ? selectedVideo.name
-              : "UPLOAD SURVEILLANCE VIDEO"}
-          </strong>
-
-          <small>
-            {uploading
-              ? "AI detection engine is processing the footage"
-              : "Click to select a video file"}
-          </small>
+        <div className="upload-area">
 
           <input
             type="file"
             accept="video/*"
             onChange={handleVideoUpload}
             hidden
+            id="video-upload"
           />
 
-        </label>
+          <label
+            htmlFor="video-upload"
+            className="upload-button"
+          >
+            <Camera size={20} />
 
+            {uploading
+              ? "Processing..."
+              : "Choose Video"}
+          </label>
 
-        {/* AI RESULT */}
+          {selectedVideo && (
+            <div className="selected-file">
+              <CheckCircle2 size={18} />
+              <span>
+                {selectedVideo.name}
+              </span>
+            </div>
+          )}
 
-        {detectionResult && (
-          <div className="detection-result">
+        </div>
+      </div>
 
-            {detectionResult.error ? (
+      {/* DETECTION RESULT */}
+      {detectionResult && (
+        <div className="panel">
 
-              <div>
-                <strong>
-                  AI ANALYSIS FAILED
-                </strong>
+          <div className="panel-header">
+            <div>
+              <h2>AI Detection Report</h2>
+              <p>
+                Results generated from the
+                uploaded video.
+              </p>
+            </div>
+          </div>
 
-                <p>
-                  {detectionResult.error}
-                </p>
+          {/* ERROR */}
+          {detectionResult.error ? (
+
+            <div className="alert-error">
+              <AlertTriangle size={20} />
+              <span>
+                {detectionResult.error}
+              </span>
+            </div>
+
+          ) : (
+
+            <>
+
+              {/* METRICS */}
+              <div className="stats-grid">
+
+                <StatCard
+                  label="TOTAL DETECTIONS"
+                  value={totalDetections}
+                  detail="AI detections"
+                  icon={
+                    <Activity size={22} />
+                  }
+                />
+
+                <StatCard
+                  label="FRAMES ANALYZED"
+                  value={framesAnalyzed}
+                  detail="Video frames"
+                  icon={
+                    <Camera size={22} />
+                  }
+                />
+
+                <StatCard
+                  label="OBJECTS DETECTED"
+                  value={
+                    objectStatsList.length
+                  }
+                  detail="Unique objects"
+                  icon={
+                    <Users size={22} />
+                  }
+                />
+
               </div>
 
-            ) : (
+              {/* OBJECT STATISTICS */}
+              {objectStatsList.length > 0 && (
 
-              <>
+                <div className="panel-section">
 
-                {/* REPORT HEADER */}
+                  <h3>
+                    Detected Objects
+                  </h3>
 
-                <div className="result-header">
+                  <div className="detection-stats">
 
-                  <div>
-                    <span className="eyebrow">
-                      AI ANALYSIS COMPLETE
-                    </span>
+                    {objectStatsList.map(
+                      (item) => (
 
-                    <h4>
-                      Video Intelligence Report
-                    </h4>
-                  </div>
+                        <div
+                          className="detection-stat"
+                          key={item.name}
+                        >
 
-                  <span className="result-status">
-                    <CheckCircle2 size={16} />
-                    PROCESSED
-                  </span>
+                          <strong>
+                            {item.name}
+                          </strong>
 
-                </div>
+                          <span>
+                            {item.count}
+                          </span>
 
+                        </div>
 
-                {/* MAIN METRICS */}
+                      )
+                    )}
 
-                <div className="result-metrics">
-
-                  <div className="result-metric">
-                    <Target size={20} />
-
-                    <span>
-                      TOTAL DETECTIONS
-                    </span>
-
-                    <strong>
-                      {totalDetections}
-                    </strong>
-                  </div>
-
-
-                  <div className="result-metric">
-                    <Eye size={20} />
-
-                    <span>
-                      OBJECT CLASSES
-                    </span>
-
-                    <strong>
-                      {objectStatsList.length}
-                    </strong>
-                  </div>
-
-
-                  <div className="result-metric">
-                    <Video size={20} />
-
-                    <span>
-                      FRAMES ANALYZED
-                    </span>
-
-                    <strong>
-                      {framesAnalyzed}
-                    </strong>
                   </div>
 
                 </div>
 
+              )}
 
-                {/* OBJECT TABLE */}
+              {/* TIMELINE */}
+              {timelineData.length > 0 && (
 
-                <div className="object-table">
+                <div className="panel-section">
 
-                  <div className="object-row object-head">
+                  <h3>
+                    Detection Timeline
+                  </h3>
 
-                    <span>
-                      OBJECT
-                    </span>
-
-                    <span>
-                      DETECTIONS
-                    </span>
-
-                    <span>
-                      MAX CONFIDENCE
-                    </span>
-
-                  </div>
-
-
-                  {objectStatsList.map(
-                    ({
-                      object,
-                      count,
-                      maxConfidence,
-                    }) => (
-
-                      <div
-                        className="object-row"
-                        key={object}
-                      >
-
-                        <strong>
-                          {object.toUpperCase()}
-                        </strong>
-
-                        <span>
-                          {count}
-                        </span>
-
-                        <span>
-                          {maxConfidence}%
-                        </span>
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-
-                {/* DETECTION ACTIVITY CHART */}
-
-                <div className="detection-chart">
-
-                  <div className="chart-heading">
-
-                    <div>
-
-                      <span className="eyebrow">
-                        FRAME ANALYSIS
-                      </span>
-
-                      <h4>
-                        Detection Activity
-                      </h4>
-
-                    </div>
-
-                    <span className="chart-info">
-                      {timelineData.length} frames with detections
-                    </span>
-
-                  </div>
-
-
-                  <div className="chart-container">
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 300,
+                    }}
+                  >
 
                     <ResponsiveContainer
                       width="100%"
-                      height={260}
+                      height="100%"
                     >
 
-                      <AreaChart
+                      <LineChart
                         data={timelineData}
                       >
 
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          opacity={0.15}
                         />
 
                         <XAxis
                           dataKey="frame"
-                          tick={{ fontSize: 10 }}
-                          tickLine={false}
                         />
 
-                        <YAxis
-                          allowDecimals={false}
-                          tick={{ fontSize: 10 }}
-                          tickLine={false}
-                        />
+                        <YAxis />
 
                         <Tooltip />
 
-                        <Area
+                        <Line
                           type="monotone"
-                          dataKey="count"
+                          dataKey="detections"
                           strokeWidth={2}
-                          fillOpacity={0.15}
                         />
 
-                      </AreaChart>
+                      </LineChart>
 
                     </ResponsiveContainer>
 
@@ -1033,209 +981,189 @@ const [imageAlertResult, setImageAlertResult] = useState(null);
 
                 </div>
 
-              </>
+              )}
 
-            )}
+              {/* DETECTION TABLE */}
+              {rawDetections.length > 0 && (
 
-          </div>
-        )}
+                <div className="panel-section">
 
-      </div>
+                  <h3>
+                    Detection Details
+                  </h3>
 
+                  <div className="table-container">
+
+                    <table>
+
+                      <thead>
+                        <tr>
+                          <th>Object</th>
+                          <th>Confidence</th>
+                          <th>Frame</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+
+                        {rawDetections.map(
+                          (detection, index) => (
+
+                            <tr key={index}>
+
+                              <td>
+                                {detection.class_name ||
+                                  detection.label ||
+                                  detection.object ||
+                                  "Unknown"}
+                              </td>
+
+                              <td>
+                                {detection.confidence
+                                  ? `${(
+                                      detection.confidence *
+                                      100
+                                    ).toFixed(1)}%`
+                                  : "N/A"}
+                              </td>
+
+                              <td>
+                                {detection.frame ||
+                                  detection.frame_number ||
+                                  "N/A"}
+                              </td>
+
+                            </tr>
+
+                          )
+                        )}
+
+                      </tbody>
+
+                    </table>
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </>
+
+          )}
+
+        </div>
+      )}
 
       {/* CURRENT DEMO SUMMARY */}
+      <div className="panel">
 
-      <div className="detection-summary">
+        <div className="panel-header">
+          <div>
+            <h2>
+              Current Demo Summary
+            </h2>
 
-        <div className="mini-stat">
-          <Target />
-
-          <span>
-            PERSON
-          </span>
-
-          <strong>
-            286
-          </strong>
+            <p>
+              Sample surveillance statistics.
+            </p>
+          </div>
         </div>
 
+        <div className="stats-grid">
 
-        <div className="mini-stat">
-          <Eye />
-
-          <span>
-            TRACKED
-          </span>
-
-          <strong>
-            214
-          </strong>
-        </div>
-
-
-        <div className="mini-stat">
-          <ShieldAlert />
-
-          <span>
-            FLAGGED
-          </span>
-
-          <strong>
-            18
-          </strong>
-        </div>
-
-      </div>
-
-
-      {/* RECENT DETECTIONS */}
-
-      <div className="panel detection-list">
-
-        <PanelHeader
-          title="RECENT AI DETECTIONS"
-          subtitle="Latest events received from the vision engine"
-          icon={<Target />}
-        />
-
-
-        {[101, 100, 99, 98, 97].map(
-          (id, index) => (
-
-            <div
-              className="detection-row"
-              key={id}
-            >
-
-              <div className="detection-avatar">
-                <Users size={18} />
-              </div>
-
-              <div>
-
-                <strong>
-                  PERSON DETECTED
-                </strong>
-
-                <small>
-                  Track ID #{25 - index} • Camera {index + 1}
-                </small>
-
-              </div>
-
-              <span className="confidence">
-                {94 - index * 3}% confidence
-              </span>
-
-              <span>
-                19:{21 - index}:15
-              </span>
-
-          )
-        )}
-
-      </div>
-
-    </div>
-  );
-}
-
-function AlertPage({ alerts, resolveAlert }) {
-  return (
-    <div>
-      <section className="page-intro">
-        <span className="eyebrow">THREAT MANAGEMENT</span>
-        <h3>Alert Center</h3>
-        <p>Review, investigate and acknowledge security events.</p>
-      </section>
-
-      <div className="alert-page-grid">
-        <div className="alert-summary-card">
-          <ShieldAlert size={28} />
-          <span>ACTIVE THREATS</span>
-          <strong>{alerts.filter((a) => a.active).length}</strong>
-          <small>Events requiring attention</small>
-        </div>
-
-        <div className="alert-summary-card">
-          <CheckCircle2 size={28} />
-          <span>RESOLVED</span>
-          <strong>{alerts.filter((a) => !a.active).length}</strong>
-          <small>Handled security events</small>
-        </div>
-      </div>
-
-      <div className="panel full-alert-list">
-        <PanelHeader
-          title="SECURITY EVENTS"
-          subtitle="Most recent alerts"
-          icon={<Bell />}
-        />
-
-        {alerts.map((alert) => (
-          <AlertItem
-            key={alert.id}
-            alert={alert}
-            onResolve={resolveAlert}
+          <StatCard
+            label="PEOPLE DETECTED"
+            value="286"
+            detail="Today"
+            icon={
+              <Users size={22} />
+            }
           />
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function AnalyticsPage() {
-  return (
-    <div>
-      <section className="page-intro">
-        <span className="eyebrow">INTELLIGENCE & INSIGHTS</span>
-        <h3>Security Analytics</h3>
-        <p>Analyze surveillance activity and AI detection patterns.</p>
-      </section>
+          <StatCard
+            label="OBJECTS DETECTED"
+            value="214"
+            detail="Today"
+            icon={
+              <Activity size={22} />
+            }
+          />
 
-      <div className="analytics-large panel">
-        <PanelHeader
-          title="DETECTION VOLUME"
-          subtitle="AI detections across the surveillance network"
-          icon={<Activity />}
-        />
+          <StatCard
+            label="ALERTS GENERATED"
+            value="18"
+            detail="Today"
+            icon={
+              <AlertTriangle size={22} />
+            }
+          />
 
-        <div className="big-chart">
-          <ResponsiveContainer width="100%" height={390}>
-            <AreaChart data={detectionData}>
-              <defs>
-                <linearGradient id="bigFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-
-              <CartesianGrid strokeDasharray="3 3" stroke="#202938" />
-
-              <XAxis dataKey="time" stroke="#667085" />
-              <YAxis stroke="#667085" />
-
-              <Tooltip
-                contentStyle={{
-                  background: "#111827",
-                  border: "1px solid #263244",
-                  borderRadius: "10px",
-                }}
-              />
-
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                fill="url(#bigFill)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
         </div>
+
       </div>
+
+      {/* RECENT AI DETECTIONS */}
+      <div className="panel">
+
+        <div className="panel-header">
+          <div>
+            <h2>
+              Recent AI Detections
+            </h2>
+
+            <p>
+              Latest detection activity.
+            </p>
+          </div>
+        </div>
+
+        <div className="detections-list">
+
+          {[101, 100, 99, 98, 97].map(
+            (id, index) => (
+
+              <div
+                className="detection-row"
+                key={id}
+              >
+
+                <div className="detection-avatar">
+                  <Users size={18} />
+                </div>
+
+                <div>
+                  <strong>
+                    PERSON DETECTED
+                  </strong>
+
+                  <small>
+                    Track ID #{25 - index}
+                    {" • "}
+                    Camera {index + 1}
+                  </small>
+                </div>
+
+                <span className="confidence">
+                  {94 - index * 3}%
+                  {" confidence"}
+                </span>
+
+                <span>
+                  19:{21 - index}:15
+                </span>
+
+              </div>
+
+            )
+          )}
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
-
 export default App;
+
