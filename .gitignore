@@ -1,6 +1,8 @@
-﻿venv/
+venv/
 __pycache__/
 *.pyc
-output/
+uploads/
 *.mp4
-*.pt
+*.avi
+*.mov
+border_surveillance.db
