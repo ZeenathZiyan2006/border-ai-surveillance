@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Camera Dashboard - Simple Demo</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* HEADER */
+        .header {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: var(--radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { font-size: 24px; background: var(--primary); padding: 8px; border-radius: 8px; }
+        .brand h1 { font-size: 18px; font-weight: 700; }
+        .brand p { font-size: 12px; color: var(--text-muted); }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: rgba(255, 255, 255, 0.05); }
+
+        /* STATS BANNER */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-box h3 { font-size: 22px; font-weight: 700; }
+        .stat-box p { font-size: 12px; color: var(--text-muted); }
+
+        /* CAMERA GRID */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s ease;
+        }
+        .card:hover { transform: translateY(-3px); }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 15px; font-weight: 600; }
+        .tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+
+        .source-code {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        .badge { padding: 4px 8px; border-radius: 12px; font-weight: 600; }
+        .badge-online { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge-offline { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .form-control { display: flex; flex-direction: column; gap: 6px; }
+        .form-control label { font-size: 12px; color: var(--text-muted); }
+        .form-control input, .form-control select {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="brand">
+                <div class="brand-icon">📹</div>
+                <div>
+                    <h1>CCTV Camera Manager</h1>
+                    <p>Live Streaming & Status Dashboard</p>
+                </div>
+            </div>
+            <div>
+                <button class="btn" onclick="openModal()">+ Add Camera</button>
+            </div>
+        </div>
+
+        <!-- STATS BANNER -->
+        <div class="stats">
+            <div class="stat-box">
+                <div style="font-size: 24px;">🎥</div>
+                <div>
+                    <h3 id="stat-total">3</h3>
+                    <p>Total Configured</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 24px;">🟢</div>
+                <div>
+                    <h3 id="stat-online">2</h3>
+                    <p>Streams Online</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 24px;">🔴</div>
+                <div>
+                    <h3 id="stat-offline">1</h3>
+                    <p>Streams Offline</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAMERA CARDS GRID -->
+        <div class="grid" id="camera-grid">
+            <!-- Camera 01 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Camera 01</span>
+                    <span class="tag">WEBCAM</span>
+                </div>
+                <div class="source-code">Source: 0 (Laptop Webcam)</div>
+                <div class="status-row">
+                    <span class="badge badge-online">🟢 ONLINE</span>
+                    <span style="color: var(--text-muted);">Active</span>
+                </div>
+                <button class="btn btn-outline" onclick="testCamera(this, 'Camera 01')">⚡ Test Connection</button>
+            </div>
+
+            <!-- Camera 02 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Camera 02</span>
+                    <span class="tag">MP4</span>
+                </div>
+                <div class="source-code">Source: test.mp4</div>
+                <div class="status-row">
+                    <span class="badge badge-online">🟢 ONLINE</span>
+                    <span style="color: var(--text-muted);">Active</span>
+                </div>
+                <button class="btn btn-outline" onclick="testCamera(this, 'Camera 02')">⚡ Test Connection</button>
+            </div>
+
+            <!-- Camera 03 -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Camera 03</span>
+                    <span class="tag">RTSP</span>
+                </div>
+                <div class="source-code">rtsp://192.168.1.100:554/stream</div>
+                <div class="status-row">
+                    <span class="badge badge-offline">🔴 OFFLINE</span>
+                    <span style="color: var(--text-muted);">Unreachable</span>
+                </div>
+                <button class="btn btn-outline" onclick="testCamera(this, 'Camera 03')">⚡ Test Connection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD CAMERA MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3>Add New Camera</h3>
+            <div class="form-control">
+                <label>Camera Name</label>
+                <input type="text" id="input-name" placeholder="e.g. Front Gate">
+            </div>
+            <div class="form-control">
+                <label>Source Type</label>
+                <select id="input-type">
+                    <option value="WEBCAM">Webcam (0, 1)</option>
+                    <option value="MP4">MP4 File</option>
+                    <option value="RTSP">RTSP CCTV Stream</option>
+                </select>
+            </div>
+            <div class="form-control">
+                <label>Source Identifier</label>
+                <input type="text" id="input-source" placeholder="0 or file.mp4 or rtsp://...">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                <button class="btn" onclick="addCamera()">Save Camera</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function testCamera(button, name) {
+            button.innerText = "⌛ Testing...";
+            button.disabled = true;
+            setTimeout(() => {
+                button.innerText = "⚡ Connection Tested";
+                button.disabled = false;
+                setTimeout(() => { button.innerText = "⚡ Test Connection"; }, 2000);
+            }, 800);
+        }
+
+        function addCamera() {
+            const name = document.getElementById('input-name').value.trim();
+            const type = document.getElementById('input-type').value;
+            const source = document.getElementById('input-source').value.trim();
+
+            if (!name || !source) {
+                alert("Please fill in both name and source!");
+                return;
+            }
+
+            const grid = document.getElementById('camera-grid');
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="card-title">${name}</span>
+                    <span class="tag">${type}</span>
+                </div>
+                <div class="source-code">${source}</div>
+                <div class="status-row">
+                    <span class="badge badge-online">🟢 ONLINE</span>
+                    <span style="color: var(--text-muted);">Added</span>
+                </div>
+                <button class="btn btn-outline" onclick="testCamera(this, '${name}')">⚡ Test Connection</button>
+            `;
+            grid.appendChild(card);
+            closeModal();
+
+            // Update stats counter
+            const totalEl = document.getElementById('stat-total');
+            totalEl.innerText = parseInt(totalEl.innerText) + 1;
+        }
+    </script>
+</body>
+</html>

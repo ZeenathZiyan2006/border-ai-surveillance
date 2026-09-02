@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+                <!-- Dynamically rendered via JS -->
+            </div>
+        </main>
+        <!-- SNAPSHOT DATABASE GALLERY SECTION -->
+        <section class="content-section">
+            <div class="section-header">
+                <h2>📸 Captured Frame Snapshots (Stored in SQLite DB)</h2>
+                <span id="snapshot-count-badge" class="badge">0 Snapshots</span>
+            </div>
+            <div id="snapshot-grid" class="snapshot-grid">
+                <!-- Dynamically rendered via JS -->
+            </div>
+        </section>
+    </div>
+    <!-- LIVE STREAM PLAYER MODAL -->
+    <div id="player-modal" class="modal-overlay hidden">
+        <div class="modal-card player-card">
+            <div class="modal-header">
+                <h3 id="player-title">Live Video Feed</h3>
+                <button id="btn-close-player" class="btn-icon">&times;</button>
+            </div>
+            <div class="player-body">
+                <div class="stream-container">
+                    <img id="stream-feed" src="" alt="Live Video Feed Stream">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-capture-snapshot" class="btn btn-primary">
+                    📸 Capture Frame & Save to SQLite DB
+                </button>
+                <button id="btn-stop-player" class="btn btn-secondary">Close Player</button>
+            </div>
+        </div>
+    </div>
+    <!-- ADD CAMERA MODAL -->
+    <div id="camera-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+</body>
+</html>
