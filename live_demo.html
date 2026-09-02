@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Video Capture & Database Dashboard - Live HTML Demo</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius: 14px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        /* HEADER */
+        .header {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            padding: 20px 28px;
+            border-radius: var(--radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-icon { font-size: 26px; background: linear-gradient(135deg, var(--primary), #818cf8); padding: 10px; border-radius: 12px; }
+        .brand h1 { font-size: 20px; font-weight: 700; }
+        .brand p { font-size: 13px; color: var(--text-muted); }
+        .db-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--success);
+            font-weight: 500;
+        }
+        .dot {
+            width: 8px; height: 8px; background: var(--success); border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
+        }
+        /* BUTTONS */
+        .btn {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+        .btn-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.4); }
+        /* STATS BANNER */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-box h3 { font-size: 26px; font-weight: 700; }
+        .stat-box p { font-size: 13px; color: var(--text-muted); }
+        /* GRID */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: all 0.2s ease;
+        }
+        .card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.2); }
+        .card-top { display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 16px; font-weight: 600; }
+        .tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+        .source-box {
+            background: rgba(0,0,0,0.4);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+        .status-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-weight: 600; }
+        .badge-online { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-offline { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .card-actions { display: flex; gap: 8px; }
+        .card-actions .btn { flex: 1; text-align: center; }
+        /* SNAPSHOT GALLERY */
+        .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+        .snapshot-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .snapshot-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #000; }
+        .snapshot-info { padding: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+        /* PLAYER MODAL */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            align-items: center; justify-content: center; padding: 20px; z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-card {
+            background: #1e293b; border: 1px solid var(--border); border-radius: var(--radius);
+            width: 100%; max-width: 640px; padding: 20px; display: flex; flex-direction: column; gap: 16px;
+        }
+        
+        .video-box {
+            width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        video, canvas { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="brand">
+                <div class="brand-icon">📹</div>
+                <div>
+                    <h1>CCTV Stream & Video Capture Dashboard</h1>
+                    <p>OpenCV Engine & Python SQLite Database Simulator</p>
+                </div>
+            </div>
+            <div class="db-badge">
+                <span class="dot"></span>
+                <span>Python Database Connected</span>
+            </div>
+        </div>
+        <!-- STATS BANNER -->
+        <div class="stats">
+            <div class="stat-box">
+                <div style="font-size: 26px;">🎥</div>
+                <div>
+                    <h3 id="stat-total">3</h3>
+                    <p>Total Configured Streams</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 26px;">🟢</div>
+                <div>
+                    <h3 id="stat-online">2</h3>
+                    <p>Active Online Streams</p>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 26px;">📸</div>
+                <div>
+                    <h3 id="stat-snapshots">0</h3>
+                    <p>Saved Database Snapshots</p>
+                </div>
+            </div>
+        </div>
+        <!-- CAMERA CARDS SECTION -->
+        <section>
+            <div class="section-header">
+                <h2>Live Camera Feeds</h2>
+            </div>
+            <div class="grid" id="camera-grid">
+                <!-- Camera 01 -->
+                <div class="card">
+                    <div class="card-top">
+                        <span class="card-title">Camera 01 (Laptop Webcam)</span>
+                        <span class="tag">WEBCAM</span>
+                    </div>
+                    <div class="source-box">Source: 0 (Device Index)</div>
+                    <div class="status-row">
+                        <span class="badge badge-online">🟢 ONLINE</span>
+                        <span style="color: var(--text-muted);">Ready</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn" onclick="openWebcamPlayer('Camera 01')">▶ Live Stream</button>
+                    </div>
+                </div>
+                <!-- Camera 02 -->
+                <div class="card">
+                    <div class="card-top">
+                        <span class="card-title">Camera 02 (MP4 Video)</span>
+                        <span class="tag">MP4</span>
+                    </div>
+                    <div class="source-box">Source: test.mp4</div>
+                    <div class="status-row">
+                        <span class="badge badge-online">🟢 ONLINE</span>
+                        <span style="color: var(--text-muted);">Ready</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn" onclick="openCanvasPlayer('Camera 02')">▶ Live Stream</button>
+                    </div>
+                </div>
+                <!-- Camera 03 -->
+                <div class="card">
+                    <div class="card-top">
+                        <span class="card-title">Camera 03 (CCTV IP Cam)</span>
+                        <span class="tag">RTSP</span>
+                    </div>
+                    <div class="source-box">rtsp://192.168.1.100:554/stream</div>
+                    <div class="status-row">
+                        <span class="badge badge-offline">🔴 OFFLINE</span>
+                        <span style="color: var(--text-muted);">Unreachable</span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" disabled>🔴 Offline</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- SNAPSHOT DATABASE GALLERY -->
+        <section>
+            <div class="section-header">
+                <h2>📸 Saved Frame Snapshots (SQLite Database)</h2>
+            </div>
+            <div class="snapshot-grid" id="snapshot-grid">
+                <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px; background: var(--card-bg); border-radius: var(--radius);">
+                    No video frames captured in SQLite Database yet. Click "▶ Live Stream" above and press "📸 Capture Frame to DB"!
+                </div>
+            </div>
+        </section>
+    </div>
+    <!-- LIVE PLAYER MODAL -->
+    <div class="modal" id="player-modal">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="player-title">Live Video Capture</h3>
+                <button onclick="closePlayer()" style="background:none; border:none; color:white; font-size: 22px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div class="video-box">
+                <video id="webcam-feed" autoplay playsinline style="display: none;"></video>
+                <canvas id="animated-feed" style="display: none;"></canvas>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 10px;">
+                <button class="btn" onclick="captureFrame() flex: 1;">📸 Capture Frame & Save to SQLite DB</button>
+                <button class="btn btn-secondary" onclick="closePlayer()">Close Player</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentMode = '';
+        let currentCamName = '';
+        let animInterval = null;
+        let snapshots = JSON.parse(localStorage.getItem('cctv_snapshots') || '[]');
+        // Initialize snapshot gallery on load
+        renderSnapshots();
+        async function openWebcamPlayer(camName) {
+            currentCamName = camName;
+            currentMode = 'webcam';
+            document.getElementById('player-title').innerText = `Live Stream: ${camName}`;
+            document.getElementById('player-modal').classList.add('active');
+            const video = document.getElementById('webcam-feed');
+            const canvas = document.getElementById('animated-feed');
+            video.style.display = 'block';
+            canvas.style.display = 'none';
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (err) {
+                console.warn("Webcam access unavailable, switching to simulated video generator.", err);
+                openCanvasPlayer(camName);
+            }
+        }
+        function openCanvasPlayer(camName) {
+            currentCamName = camName;
+            currentMode = 'canvas';
+            document.getElementById('player-title').innerText = `Live Stream: ${camName}`;
+            document.getElementById('player-modal').classList.add('active');
+            const video = document.getElementById('webcam-feed');
+            const canvas = document.getElementById('animated-feed');
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            canvas.width = 640;
+            canvas.height = 360;
+            let x = 50;
+            let dx = 4;
+            if (animInterval) clearInterval(animInterval);
+            animInterval = setInterval(() => {
+                // Background
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Grid lines
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < canvas.width; i += 40) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                }
+                // AI Bounding Box overlay simulation
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, 100, 140, 160);
+                ctx.fillStyle = '#10b981';
+                ctx.font = '14px Inter, sans-serif';
+                ctx.fillText('AI Model: Person (98%)', x, 90);
+                // Timestamp overlay
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px monospace';
+                ctx.fillText(`CAM: ${camName} | ${new Date().toLocaleTimeString()}`, 20, 30);
+                x += dx;
+                if (x > canvas.width - 160 || x < 20) dx = -dx;
+            }, 33);
+        }
+        function closePlayer() {
+            document.getElementById('player-modal').classList.remove('active');
+            const video = document.getElementById('webcam-feed');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            if (animInterval) clearInterval(animInterval);
+        }
+        function captureFrame() {
+            let dataUrl = '';
+            if (currentMode === 'webcam') {
+                const video = document.getElementById('webcam-feed');
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = video.videoWidth || 640;
+                tempCanvas.height = video.videoHeight || 480;
+                const ctx = tempCanvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                dataUrl = tempCanvas.toDataURL('image/jpeg');
+            } else {
+                const canvas = document.getElementById('animated-feed');
+                dataUrl = canvas.toDataURL('image/jpeg');
+            }
+            const snapshot = {
+                id: Date.now(),
+                camera_name: currentCamName,
+                timestamp: new Date().toLocaleString(),
+                image_data: dataUrl
+            };
+            snapshots.unshift(snapshot);
+            localStorage.setItem('cctv_snapshots', JSON.stringify(snapshots));
+            renderSnapshots();
+            alert(`Captured frame saved to Python SQLite Database simulation!`);
+        }
+        function renderSnapshots() {
+            const grid = document.getElementById('snapshot-grid');
+            document.getElementById('stat-snapshots').innerText = snapshots.length;
+            if (snapshots.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px; background: var(--card-bg); border-radius: var(--radius);">No video frames captured in SQLite Database yet. Click "▶ Live Stream" above and press "📸 Capture Frame"!</div>`;
+                return;
+            }
+            grid.innerHTML = snapshots.map(s => `
+                <div class="snapshot-card">
+                    <img class="snapshot-img" src="${s.image_data}" alt="Snapshot">
+                    <div class="snapshot-info">
+                        <strong>${escapeHtml(s.camera_name)}</strong>
+                        <span style="color: var(--text-muted);">${escapeHtml(s.timestamp)}</span>
+                        <button class="btn btn-danger" style="margin-top: 6px; padding: 5px; font-size: 11px;" onclick="deleteSnapshot(${s.id})">Delete Snapshot</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function deleteSnapshot(id) {
+            snapshots = snapshots.filter(s => s.id !== id);
+            localStorage.setItem('cctv_snapshots', JSON.stringify(snapshots));
+            renderSnapshots();
+        }
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
